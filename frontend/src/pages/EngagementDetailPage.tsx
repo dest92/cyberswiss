@@ -8,6 +8,7 @@ import { createJob, listJobs, listTools } from '@/api/jobs'
 import { listTargets } from '@/api/targets'
 import { createPipelineRun, listPipelineDefinitions, listPipelineRuns } from '@/api/pipelines'
 import { createFinding, deleteFinding, listFindings, updateFinding } from '@/api/findings'
+import { createReport, deleteReport, downloadReport, listReports } from '@/api/reports'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import {
@@ -19,7 +20,13 @@ import {
 } from '@/components/ui/Badge'
 import { JobLogTerminal } from '@/components/JobLogTerminal'
 import { OWASP_TOP_10 } from '@/lib/owasp'
-import type { EngagementStatus, FindingSeverity, FindingStatus, ScopeType } from '@/api/types'
+import type {
+  EngagementStatus,
+  FindingSeverity,
+  FindingStatus,
+  ReportFormat,
+  ScopeType,
+} from '@/api/types'
 
 const SCOPE_TYPES: ScopeType[] = ['domain', 'ip_range', 'url', 'cidr']
 const STATUSES: EngagementStatus[] = ['active', 'archived', 'closed']
@@ -221,6 +228,23 @@ export function EngagementDetailPage() {
   const deleteFindingMutation = useMutation({
     mutationFn: (findingId: string) => deleteFinding(engagementId, findingId),
     onSuccess: invalidateFindings,
+  })
+
+  const { data: reports } = useQuery({
+    queryKey: ['engagements', engagementId, 'reports'],
+    queryFn: () => listReports(engagementId),
+  })
+
+  const invalidateReports = () =>
+    queryClient.invalidateQueries({ queryKey: ['engagements', engagementId, 'reports'] })
+
+  const generateReportMutation = useMutation({
+    mutationFn: (format: ReportFormat) => createReport(engagementId, format),
+    onSuccess: invalidateReports,
+  })
+  const deleteReportMutation = useMutation({
+    mutationFn: (reportId: string) => deleteReport(engagementId, reportId),
+    onSuccess: invalidateReports,
   })
 
   if (!engagement) {
@@ -687,6 +711,54 @@ export function EngagementDetailPage() {
           ))}
           {findings && findings.length === 0 && (
             <p className="text-sm text-muted">Sin findings registrados aún.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="terminal mb-3 text-sm text-accent">reportes</h2>
+        <div className="mb-4 flex gap-2">
+          <Button
+            onClick={() => generateReportMutation.mutate('markdown')}
+            disabled={generateReportMutation.isPending}
+          >
+            generar markdown
+          </Button>
+          <Button
+            onClick={() => generateReportMutation.mutate('pdf')}
+            disabled={generateReportMutation.isPending}
+          >
+            generar pdf
+          </Button>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          {reports?.map((report) => (
+            <div
+              key={report.id}
+              className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2"
+            >
+              <div className="flex items-center gap-3">
+                <span className="terminal text-xs text-accent">{report.format}</span>
+                <span className="text-xs text-muted">
+                  {new Date(report.created_at).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => downloadReport(engagementId, report)}
+                >
+                  descargar
+                </Button>
+                <Button variant="danger" onClick={() => deleteReportMutation.mutate(report.id)}>
+                  eliminar
+                </Button>
+              </div>
+            </div>
+          ))}
+          {reports && reports.length === 0 && (
+            <p className="text-sm text-muted">Sin reportes generados aún.</p>
           )}
         </div>
       </section>

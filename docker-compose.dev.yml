@@ -4,6 +4,7 @@ services:
     volumes:
       - ./backend/app:/app/app
       - uploads:/app/data/uploads
+      - reports:/app/data/reports
 
   worker:
     volumes:

@@ -169,3 +169,12 @@ export interface KnowledgeDocumentInput {
   content: string
   owasp_categories: string[]
 }
+
+export type ReportFormat = 'markdown' | 'pdf'
+
+export interface Report {
+  id: string
+  engagement_id: string
+  format: ReportFormat
+  created_at: string
+}

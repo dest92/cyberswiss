@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     auth_disabled: bool = False
     uploads_dir: str = "/app/data/uploads"
     job_outputs_dir: str = "/app/data/job_outputs"
+    reports_dir: str = "/app/data/reports"
     job_default_timeout_seconds: int = 600
     job_default_memory_limit: str = "512m"
     job_default_cpu_limit: float = 1.0
