@@ -1,0 +1,58 @@
+# Reporte de pentesting — {{ engagement.name }}
+
+**Cliente:** {{ engagement.client_name or "N/A" }}
+**Estado:** {{ engagement.status.value }}
+**Periodo:** {{ engagement.start_date or "N/A" }} – {{ engagement.end_date or "N/A" }}
+**Generado:** {{ generated_at.strftime("%Y-%m-%d %H:%M UTC") }}
+
+## Resumen ejecutivo
+
+Total de hallazgos: {{ findings|length }}
+
+| Severidad | Cantidad |
+|---|---|
+{% for sev in severity_order %}
+| {{ sev|upper }} | {{ severity_counts[sev] }} |
+{% endfor %}
+
+## Alcance autorizado
+
+{% if scopes %}
+| Tipo | Valor | En alcance |
+|---|---|---|
+{% for s in scopes %}
+| {{ s.type.value }} | {{ s.value }} | {{ "sí" if s.in_scope else "no (excluido)" }} |
+{% endfor %}
+{% else %}
+_Sin alcance definido._
+{% endif %}
+
+## Hallazgos
+
+{% for f in findings %}
+### {{ f.title }} — {{ f.severity.value|upper }}
+
+- **Categoría OWASP:** {{ f.owasp_category }}
+{% if f.mitre_techniques %}
+- **Técnicas MITRE ATT&CK:** {{ f.mitre_techniques|join(', ') }}
+{% endif %}
+- **Estado:** {{ f.status.value }}
+{% if f.cvss_score %}
+- **CVSS:** {{ f.cvss_score }}
+{% endif %}
+
+{{ f.description or "_Sin descripción._" }}
+
+{% endfor %}
+{% if not findings %}
+_No se registraron hallazgos._
+{% endif %}
+
+## Notas
+
+{% for n in notes %}
+- {{ n.content }}
+{% endfor %}
+{% if not notes %}
+_Sin notas._
+{% endif %}
