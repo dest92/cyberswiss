@@ -51,7 +51,7 @@ tool-images/     imágenes Docker con las herramientas de pentesting preinstalad
 
 1. ~~Fase 0 — Bootstrap~~
 2. ~~Fase 1 — Auth + Engagements~~
-3. Fase 2 — Motor de ejecución de herramientas (subfinder, httpx, nuclei)
+3. ~~Fase 2 — Motor de ejecución de herramientas (subfinder, httpx, nuclei)~~
 4. Fase 3 — Pipelines encadenados + más herramientas (nmap, gobuster, whatweb)
 5. Fase 4 — Findings + Biblioteca de conocimiento (foco OWASP Top 10)
 6. Fase 5 — Reportes (post-MVP)

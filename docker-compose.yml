@@ -42,10 +42,11 @@ services:
 
   worker:
     build: ./backend
-    command: ["dramatiq", "app.workers.broker"]
+    command: ["dramatiq", "app.workers.actors"]
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://cyberswiss:change-me@postgres/cyberswiss}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      RECON_TOOLBOX_IMAGE: ${RECON_TOOLBOX_IMAGE:-cyberswiss/recon-toolbox:latest}
     depends_on:
       postgres:
         condition: service_healthy

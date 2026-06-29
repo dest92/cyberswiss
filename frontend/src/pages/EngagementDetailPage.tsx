@@ -4,13 +4,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { deleteEngagement, getEngagement, updateEngagement } from '@/api/engagements'
 import { createScope, deleteScope, listScopes, updateScope } from '@/api/scopes'
 import { createNote, deleteNote, listNotes, updateNote } from '@/api/notes'
+import { createJob, listJobs, listTools } from '@/api/jobs'
+import { listTargets } from '@/api/targets'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
-import { StatusBadge } from '@/components/ui/Badge'
+import { StatusBadge, JobStatusBadge } from '@/components/ui/Badge'
+import { JobLogTerminal } from '@/components/JobLogTerminal'
 import type { EngagementStatus, ScopeType } from '@/api/types'
 
 const SCOPE_TYPES: ScopeType[] = ['domain', 'ip_range', 'url', 'cidr']
 const STATUSES: EngagementStatus[] = ['active', 'archived', 'closed']
+const ACTIVE_JOB_STATUSES = new Set(['queued', 'running'])
 
 export function EngagementDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -92,6 +96,45 @@ export function EngagementDetailPage() {
     onSuccess: () => {
       setEditingNoteId(null)
       invalidateNotes()
+    },
+  })
+
+  const { data: tools } = useQuery({ queryKey: ['tools'], queryFn: listTools })
+
+  const { data: jobs } = useQuery({
+    queryKey: ['engagements', engagementId, 'jobs'],
+    queryFn: () => listJobs(engagementId),
+    refetchInterval: (query) => {
+      const data = query.state.data
+      return data?.some((job) => ACTIVE_JOB_STATUSES.has(job.status)) ? 2000 : false
+    },
+  })
+
+  const { data: targets } = useQuery({
+    queryKey: ['engagements', engagementId, 'targets'],
+    queryFn: () => listTargets(engagementId),
+  })
+
+  const invalidateJobs = () =>
+    queryClient.invalidateQueries({ queryKey: ['engagements', engagementId, 'jobs'] })
+  const invalidateTargets = () =>
+    queryClient.invalidateQueries({ queryKey: ['engagements', engagementId, 'targets'] })
+
+  const [selectedTool, setSelectedTool] = useState('')
+  const [toolInput, setToolInput] = useState('')
+  const [activeJobId, setActiveJobId] = useState<string | null>(null)
+  const launchJobMutation = useMutation({
+    mutationFn: () => {
+      const tool = selectedTool || tools?.[0] || ''
+      const params =
+        tool === 'subfinder' ? { domain: toolInput.trim() } : { targets: toolInput.split('\n').map((l) => l.trim()).filter(Boolean) }
+      return createJob(engagementId, { tool_name: tool, params })
+    },
+    onSuccess: (job) => {
+      setToolInput('')
+      setActiveJobId(job.id)
+      invalidateJobs()
+      invalidateTargets()
     },
   })
 
@@ -280,6 +323,94 @@ export function EngagementDetailPage() {
             </div>
           ))}
           {notes && notes.length === 0 && <p className="text-sm text-muted">Sin notas aún.</p>}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="terminal mb-3 text-sm text-accent">escaneos</h2>
+        <form
+          className="mb-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (toolInput.trim()) launchJobMutation.mutate()
+          }}
+        >
+          <select
+            className="terminal rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+            value={selectedTool || tools?.[0] || ''}
+            onChange={(e) => setSelectedTool(e.target.value)}
+          >
+            {tools?.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <Input
+            placeholder={
+              (selectedTool || tools?.[0]) === 'subfinder'
+                ? 'dominio, ej. example.com'
+                : 'targets (uno por línea), ej. https://example.com'
+            }
+            value={toolInput}
+            onChange={(e) => setToolInput(e.target.value)}
+          />
+          <Button type="submit" disabled={launchJobMutation.isPending || !tools?.length}>
+            lanzar
+          </Button>
+        </form>
+
+        <div className="flex flex-col gap-2">
+          {jobs?.map((job) => (
+            <div key={job.id} className="rounded-md border border-border bg-surface p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="terminal text-sm text-foreground">{job.tool_name}</span>
+                  <JobStatusBadge status={job.status} />
+                  <span className="text-xs text-muted">
+                    {new Date(job.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => setActiveJobId(activeJobId === job.id ? null : job.id)}
+                >
+                  {activeJobId === job.id ? 'ocultar logs' : 'ver logs'}
+                </Button>
+              </div>
+              {job.error_message && (
+                <p className="terminal mt-2 text-xs text-severity-critical">
+                  {job.error_message}
+                </p>
+              )}
+              {activeJobId === job.id && (
+                <div className="mt-3">
+                  <JobLogTerminal jobId={job.id} />
+                </div>
+              )}
+            </div>
+          ))}
+          {jobs && jobs.length === 0 && (
+            <p className="text-sm text-muted">No se han lanzado escaneos aún.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="terminal mb-3 text-sm text-accent">targets descubiertos</h2>
+        <div className="flex flex-col gap-1.5">
+          {targets?.map((target) => (
+            <div
+              key={target.id}
+              className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2"
+            >
+              <span className="terminal text-xs text-muted">{target.type}</span>
+              <span className="terminal text-sm text-foreground">{target.value}</span>
+            </div>
+          ))}
+          {targets && targets.length === 0 && (
+            <p className="text-sm text-muted">Sin targets descubiertos aún.</p>
+          )}
         </div>
       </section>
     </div>

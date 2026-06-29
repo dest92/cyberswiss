@@ -40,3 +40,9 @@ class Engagement(Base):
     notes: Mapped[list["Note"]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )
+    jobs: Mapped[list["Job"]] = relationship(
+        back_populates="engagement", cascade="all, delete-orphan"
+    )
+    targets: Mapped[list["Target"]] = relationship(
+        back_populates="engagement", cascade="all, delete-orphan"
+    )
