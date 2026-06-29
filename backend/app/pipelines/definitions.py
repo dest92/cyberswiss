@@ -16,6 +16,12 @@ RECON_CHAIN = PipelineDefinition(
             build_params=lambda params, prev: {"domain": params["domain"]},
         ),
         PipelineStep(
+            tool_name="dnsx",
+            build_params=lambda params, prev: {
+                "targets": _values_of(prev, ResultType.host) or [params["domain"]]
+            },
+        ),
+        PipelineStep(
             tool_name="httpx",
             build_params=lambda params, prev: {
                 "targets": _values_of(prev, ResultType.host) or [params["domain"]]
