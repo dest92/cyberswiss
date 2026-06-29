@@ -1,10 +1,10 @@
-<%text>"""${message}
+"""${message}
 
 Revision ID: ${up_revision}
 Revises: ${down_revision | comma,n}
 Create Date: ${create_date}
 
-"""</%text>
+"""
 from collections.abc import Sequence
 
 from alembic import op

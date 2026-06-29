@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     job_default_memory_limit: str = "512m"
     job_default_cpu_limit: float = 1.0
     recon_toolbox_image: str = "cyberswiss/recon-toolbox:latest"
+    cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
 
 settings = Settings()
