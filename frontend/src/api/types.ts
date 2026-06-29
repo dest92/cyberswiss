@@ -111,3 +111,61 @@ export interface Target {
   source_job_id: string | null
   discovered_at: string
 }
+
+export type FindingSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info'
+export type FindingStatus = 'open' | 'confirmed' | 'fixed' | 'false_positive'
+
+export interface Finding {
+  id: string
+  engagement_id: string
+  source_job_id: string | null
+  title: string
+  description: string | null
+  owasp_category: string
+  severity: FindingSeverity
+  cvss_score: number | null
+  status: FindingStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface FindingInput {
+  title: string
+  description?: string | null
+  owasp_category: string
+  severity: FindingSeverity
+  cvss_score?: number | null
+  status?: FindingStatus
+  source_job_id?: string | null
+}
+
+export type KnowledgeDocumentType = 'markdown' | 'pdf'
+export type KnowledgeDocumentStatus = 'ready' | 'processing' | 'failed'
+
+export interface KnowledgeDocumentSummary {
+  id: string
+  title: string
+  doc_type: KnowledgeDocumentType
+  status: KnowledgeDocumentStatus
+  owasp_categories: string[]
+  is_seed: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface KnowledgeDocument extends KnowledgeDocumentSummary {
+  content: string | null
+  file_path: string | null
+  error_message: string | null
+}
+
+export interface KnowledgeDocumentSearchResult extends KnowledgeDocumentSummary {
+  snippet: string | null
+  rank: number | null
+}
+
+export interface KnowledgeDocumentInput {
+  title: string
+  content: string
+  owasp_categories: string[]
+}

@@ -3,6 +3,7 @@ import { Layout } from '@/components/Layout'
 import { AuthPage } from '@/pages/AuthPage'
 import { EngagementsPage } from '@/pages/EngagementsPage'
 import { EngagementDetailPage } from '@/pages/EngagementDetailPage'
+import { KnowledgeLibraryPage } from '@/pages/KnowledgeLibraryPage'
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
       <Route element={<Layout />}>
         <Route path="/" element={<EngagementsPage />} />
         <Route path="/engagements/:id" element={<EngagementDetailPage />} />
+        <Route path="/knowledge" element={<KnowledgeLibraryPage />} />
       </Route>
     </Routes>
   )

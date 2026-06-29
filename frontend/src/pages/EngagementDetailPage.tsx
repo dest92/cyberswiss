@@ -7,17 +7,27 @@ import { createNote, deleteNote, listNotes, updateNote } from '@/api/notes'
 import { createJob, listJobs, listTools } from '@/api/jobs'
 import { listTargets } from '@/api/targets'
 import { createPipelineRun, listPipelineDefinitions, listPipelineRuns } from '@/api/pipelines'
+import { createFinding, deleteFinding, listFindings, updateFinding } from '@/api/findings'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
-import { StatusBadge, JobStatusBadge, PipelineRunStatusBadge } from '@/components/ui/Badge'
+import {
+  StatusBadge,
+  JobStatusBadge,
+  PipelineRunStatusBadge,
+  SeverityBadge,
+  FindingStatusBadge,
+} from '@/components/ui/Badge'
 import { JobLogTerminal } from '@/components/JobLogTerminal'
-import type { EngagementStatus, ScopeType } from '@/api/types'
+import { OWASP_TOP_10 } from '@/lib/owasp'
+import type { EngagementStatus, FindingSeverity, FindingStatus, ScopeType } from '@/api/types'
 
 const SCOPE_TYPES: ScopeType[] = ['domain', 'ip_range', 'url', 'cidr']
 const STATUSES: EngagementStatus[] = ['active', 'archived', 'closed']
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'running'])
 const ACTIVE_RUN_STATUSES = new Set(['queued', 'running'])
 const PIPELINE_PARAM_KEY: Record<string, string> = { recon_chain: 'domain', web_audit: 'url' }
+const SEVERITIES: FindingSeverity[] = ['critical', 'high', 'medium', 'low', 'info']
+const FINDING_STATUSES: FindingStatus[] = ['open', 'confirmed', 'fixed', 'false_positive']
 
 export function EngagementDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -175,6 +185,42 @@ export function EngagementDetailPage() {
       setExpandedRunId(run.id)
       invalidatePipelineRuns()
     },
+  })
+
+  const { data: findings } = useQuery({
+    queryKey: ['engagements', engagementId, 'findings'],
+    queryFn: () => listFindings(engagementId),
+  })
+
+  const invalidateFindings = () =>
+    queryClient.invalidateQueries({ queryKey: ['engagements', engagementId, 'findings'] })
+
+  const [findingTitle, setFindingTitle] = useState('')
+  const [findingOwasp, setFindingOwasp] = useState(OWASP_TOP_10[0].code)
+  const [findingSeverity, setFindingSeverity] = useState<FindingSeverity>('medium')
+  const [findingDescription, setFindingDescription] = useState('')
+  const addFindingMutation = useMutation({
+    mutationFn: () =>
+      createFinding(engagementId, {
+        title: findingTitle.trim(),
+        owasp_category: findingOwasp,
+        severity: findingSeverity,
+        description: findingDescription.trim() || null,
+      }),
+    onSuccess: () => {
+      setFindingTitle('')
+      setFindingDescription('')
+      invalidateFindings()
+    },
+  })
+  const updateFindingStatusMutation = useMutation({
+    mutationFn: (vars: { findingId: string; status: FindingStatus }) =>
+      updateFinding(engagementId, vars.findingId, { status: vars.status }),
+    onSuccess: invalidateFindings,
+  })
+  const deleteFindingMutation = useMutation({
+    mutationFn: (findingId: string) => deleteFinding(engagementId, findingId),
+    onSuccess: invalidateFindings,
   })
 
   if (!engagement) {
@@ -552,6 +598,95 @@ export function EngagementDetailPage() {
           ))}
           {targets && targets.length === 0 && (
             <p className="text-sm text-muted">Sin targets descubiertos aún.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="terminal mb-3 text-sm text-accent">findings</h2>
+        <form
+          className="mb-4 flex flex-col gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (findingTitle.trim()) addFindingMutation.mutate()
+          }}
+        >
+          <div className="flex gap-2">
+            <Input
+              placeholder="título del finding"
+              value={findingTitle}
+              onChange={(e) => setFindingTitle(e.target.value)}
+            />
+            <select
+              className="terminal rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+              value={findingOwasp}
+              onChange={(e) => setFindingOwasp(e.target.value)}
+            >
+              {OWASP_TOP_10.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} - {c.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="terminal rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+              value={findingSeverity}
+              onChange={(e) => setFindingSeverity(e.target.value as FindingSeverity)}
+            >
+              {SEVERITIES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Textarea
+            placeholder="descripción (opcional)"
+            value={findingDescription}
+            onChange={(e) => setFindingDescription(e.target.value)}
+            rows={2}
+          />
+          <Button type="submit" disabled={addFindingMutation.isPending}>
+            agregar finding
+          </Button>
+        </form>
+
+        <div className="flex flex-col gap-2">
+          {findings?.map((finding) => (
+            <div key={finding.id} className="rounded-md border border-border bg-surface p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="terminal text-sm text-foreground">{finding.title}</span>
+                  <span className="terminal text-xs text-accent">{finding.owasp_category}</span>
+                  <SeverityBadge severity={finding.severity} />
+                  <FindingStatusBadge status={finding.status} />
+                </div>
+                <Button variant="danger" onClick={() => deleteFindingMutation.mutate(finding.id)}>
+                  eliminar
+                </Button>
+              </div>
+              {finding.description && (
+                <p className="mt-2 whitespace-pre-wrap text-sm text-muted">
+                  {finding.description}
+                </p>
+              )}
+              <div className="mt-2 flex gap-2">
+                {FINDING_STATUSES.map((s) => (
+                  <Button
+                    key={s}
+                    variant={s === finding.status ? 'primary' : 'secondary'}
+                    onClick={() =>
+                      updateFindingStatusMutation.mutate({ findingId: finding.id, status: s })
+                    }
+                  >
+                    {s.replace('_', ' ')}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
+          {findings && findings.length === 0 && (
+            <p className="text-sm text-muted">Sin findings registrados aún.</p>
           )}
         </div>
       </section>

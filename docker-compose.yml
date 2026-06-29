@@ -42,7 +42,7 @@ services:
 
   worker:
     build: ./backend
-    command: ["dramatiq", "app.workers.actors", "app.pipelines.engine"]
+    command: ["dramatiq", "app.workers.actors", "app.pipelines.engine", "app.workers.knowledge_actors"]
     environment:
       DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://cyberswiss:change-me@postgres/cyberswiss}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}

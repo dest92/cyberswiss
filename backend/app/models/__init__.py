@@ -1,5 +1,7 @@
 from app.models.engagement import Engagement, EngagementStatus
+from app.models.finding import Finding, FindingSeverity, FindingStatus
 from app.models.job import Job, JobStatus
+from app.models.knowledge_document import KnowledgeDocument, KnowledgeDocumentStatus, KnowledgeDocumentType
 from app.models.note import Note
 from app.models.pipeline_run import PipelineRun, PipelineRunStatus
 from app.models.scope import Scope, ScopeType
@@ -19,4 +21,10 @@ __all__ = [
     "TargetType",
     "PipelineRun",
     "PipelineRunStatus",
+    "Finding",
+    "FindingSeverity",
+    "FindingStatus",
+    "KnowledgeDocument",
+    "KnowledgeDocumentType",
+    "KnowledgeDocumentStatus",
 ]

@@ -49,3 +49,6 @@ class Engagement(Base):
     pipeline_runs: Mapped[list["PipelineRun"]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )
+    findings: Mapped[list["Finding"]] = relationship(
+        back_populates="engagement", cascade="all, delete-orphan"
+    )

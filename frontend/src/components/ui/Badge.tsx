@@ -1,5 +1,11 @@
 import { cn } from '@/lib/utils'
-import type { EngagementStatus, JobStatus, PipelineRunStatus } from '@/api/types'
+import type {
+  EngagementStatus,
+  FindingSeverity,
+  FindingStatus,
+  JobStatus,
+  PipelineRunStatus,
+} from '@/api/types'
 
 const statusClasses: Record<EngagementStatus, string> = {
   active: 'text-terminal-green border-terminal-green/40 bg-terminal-green/10',
@@ -57,6 +63,47 @@ export function PipelineRunStatusBadge({ status }: { status: PipelineRunStatus }
       )}
     >
       {status}
+    </span>
+  )
+}
+
+const severityClasses: Record<FindingSeverity, string> = {
+  critical: 'text-severity-critical border-severity-critical/40 bg-severity-critical/10',
+  high: 'text-severity-high border-severity-high/40 bg-severity-high/10',
+  medium: 'text-severity-medium border-severity-medium/40 bg-severity-medium/10',
+  low: 'text-severity-low border-severity-low/40 bg-severity-low/10',
+  info: 'text-severity-info border-severity-info/40 bg-severity-info/10',
+}
+
+export function SeverityBadge({ severity }: { severity: FindingSeverity }) {
+  return (
+    <span
+      className={cn(
+        'terminal rounded border px-2 py-0.5 text-xs uppercase tracking-wide',
+        severityClasses[severity],
+      )}
+    >
+      {severity}
+    </span>
+  )
+}
+
+const findingStatusClasses: Record<FindingStatus, string> = {
+  open: 'text-accent border-accent/40 bg-accent/10',
+  confirmed: 'text-severity-high border-severity-high/40 bg-severity-high/10',
+  fixed: 'text-terminal-green border-terminal-green/40 bg-terminal-green/10',
+  false_positive: 'text-muted border-border bg-surface-elevated',
+}
+
+export function FindingStatusBadge({ status }: { status: FindingStatus }) {
+  return (
+    <span
+      className={cn(
+        'terminal rounded border px-2 py-0.5 text-xs uppercase tracking-wide',
+        findingStatusClasses[status],
+      )}
+    >
+      {status.replace('_', ' ')}
     </span>
   )
 }

@@ -27,6 +27,12 @@ export function Layout() {
           cyberswiss
         </Link>
         <div className="flex items-center gap-4 text-sm">
+          <Link to="/" className="text-muted hover:text-foreground">
+            engagements
+          </Link>
+          <Link to="/knowledge" className="text-muted hover:text-foreground">
+            biblioteca
+          </Link>
           {status?.user && <span className="text-muted">{status.user.email}</span>}
           {!status?.auth_disabled && (
             <Button variant="ghost" onClick={() => logoutMutation.mutate()}>

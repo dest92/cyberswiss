@@ -4,7 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     auth,
     engagements,
+    findings,
     jobs,
+    knowledge,
     notes,
     pipelines,
     scopes,
@@ -33,6 +35,8 @@ app.include_router(jobs.router)
 app.include_router(targets.router)
 app.include_router(pipelines.catalog_router)
 app.include_router(pipelines.router)
+app.include_router(findings.router)
+app.include_router(knowledge.router)
 app.include_router(ws_logs.router)
 
 
