@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import DateTime
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy import Float, ForeignKey, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -40,6 +40,9 @@ class Finding(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     owasp_category: Mapped[str] = mapped_column(String(16), nullable=False)
+    mitre_techniques: Mapped[list[str]] = mapped_column(
+        ARRAY(String(16)), default=list, nullable=False
+    )
     severity: Mapped[FindingSeverity] = mapped_column(
         SqlEnum(FindingSeverity, name="finding_severity"), nullable=False
     )

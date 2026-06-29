@@ -61,6 +61,7 @@
     <span class="badge {{ f.severity.value }}">{{ f.severity.value|upper }}</span>
     <strong>{{ f.title }}</strong> — {{ f.owasp_category }} — estado: {{ f.status.value }}
     {% if f.cvss_score %}<br>CVSS: {{ f.cvss_score }}{% endif %}
+    {% if f.mitre_techniques %}<br>MITRE ATT&amp;CK: {{ f.mitre_techniques|join(', ') }}{% endif %}
     <p>{{ f.description or "Sin descripción." }}</p>
   </div>
   {% else %}

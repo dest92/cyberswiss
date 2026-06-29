@@ -30,6 +30,7 @@ import {
   FindingStatusBadge,
 } from '@/components/ui/Badge'
 import { JobLogTerminal } from '@/components/JobLogTerminal'
+import { MITRE_TECHNIQUES } from '@/lib/mitre'
 import { OWASP_TOP_10 } from '@/lib/owasp'
 import { buildToolParams, toolInputPlaceholder } from '@/lib/toolParams'
 import type {
@@ -255,6 +256,7 @@ export function EngagementDetailPage() {
 
   const [findingTitle, setFindingTitle] = useState('')
   const [findingOwasp, setFindingOwasp] = useState(OWASP_TOP_10[0].code)
+  const [findingMitre, setFindingMitre] = useState<string[]>([])
   const [findingSeverity, setFindingSeverity] = useState<FindingSeverity>('medium')
   const [findingDescription, setFindingDescription] = useState('')
   const addFindingMutation = useMutation({
@@ -262,12 +264,14 @@ export function EngagementDetailPage() {
       createFinding(engagementId, {
         title: findingTitle.trim(),
         owasp_category: findingOwasp,
+        mitre_techniques: findingMitre,
         severity: findingSeverity,
         description: findingDescription.trim() || null,
       }),
     onSuccess: () => {
       setFindingTitle('')
       setFindingDescription('')
+      setFindingMitre([])
       invalidateFindings()
     },
   })
@@ -878,6 +882,24 @@ export function EngagementDetailPage() {
               ))}
             </select>
           </div>
+          <div>
+            <p className="terminal mb-1 text-xs text-muted">técnicas mitre att&amp;ck (opcional, ctrl+click para varias)</p>
+            <select
+              multiple
+              size={4}
+              className="terminal w-full rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+              value={findingMitre}
+              onChange={(e) =>
+                setFindingMitre(Array.from(e.target.selectedOptions, (o) => o.value))
+              }
+            >
+              {MITRE_TECHNIQUES.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.code} - {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <Textarea
             placeholder="descripción (opcional)"
             value={findingDescription}
@@ -907,6 +929,18 @@ export function EngagementDetailPage() {
                 <p className="mt-2 whitespace-pre-wrap text-sm text-muted">
                   {finding.description}
                 </p>
+              )}
+              {finding.mitre_techniques.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {finding.mitre_techniques.map((code) => (
+                    <span
+                      key={code}
+                      className="terminal rounded-md border border-border bg-background px-1.5 py-0.5 text-xs text-muted"
+                    >
+                      {code}
+                    </span>
+                  ))}
+                </div>
               )}
               <div className="mt-2 flex gap-2">
                 {FINDING_STATUSES.map((s) => (

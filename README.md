@@ -58,3 +58,4 @@ tool-images/     imágenes Docker con las herramientas de pentesting preinstalad
 7. ~~Fase 6 — Dashboard de métricas por engagement~~
 8. ~~Fase 6+ — Escaneos recurrentes (scheduled scans)~~
 9. ~~Fase 6+ — Integración de ffuf + mapeo correcto de parámetros por herramienta en la UI~~
+10. ~~Fase 6+ — Tagging MITRE ATT&CK en findings (secundario a OWASP Top 10)~~

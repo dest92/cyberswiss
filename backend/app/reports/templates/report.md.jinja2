@@ -33,6 +33,9 @@ _Sin alcance definido._
 ### {{ f.title }} — {{ f.severity.value|upper }}
 
 - **Categoría OWASP:** {{ f.owasp_category }}
+{% if f.mitre_techniques %}
+- **Técnicas MITRE ATT&CK:** {{ f.mitre_techniques|join(', ') }}
+{% endif %}
 - **Estado:** {{ f.status.value }}
 {% if f.cvss_score %}
 - **CVSS:** {{ f.cvss_score }}

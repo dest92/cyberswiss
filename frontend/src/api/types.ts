@@ -122,6 +122,7 @@ export interface Finding {
   title: string
   description: string | null
   owasp_category: string
+  mitre_techniques: string[]
   severity: FindingSeverity
   cvss_score: number | null
   status: FindingStatus
@@ -133,6 +134,7 @@ export interface FindingInput {
   title: string
   description?: string | null
   owasp_category: string
+  mitre_techniques?: string[]
   severity: FindingSeverity
   cvss_score?: number | null
   status?: FindingStatus
