@@ -62,6 +62,8 @@ export type JobStatus = 'queued' | 'running' | 'success' | 'failed' | 'timeout'
 export interface Job {
   id: string
   engagement_id: string
+  pipeline_run_id: string | null
+  step_index: number | null
   tool_name: string
   status: JobStatus
   params: Record<string, unknown>
@@ -76,6 +78,26 @@ export interface Job {
 
 export interface JobInput {
   tool_name: string
+  params: Record<string, unknown>
+}
+
+export type PipelineRunStatus = 'queued' | 'running' | 'success' | 'failed'
+
+export interface PipelineRun {
+  id: string
+  engagement_id: string
+  pipeline_name: string
+  status: PipelineRunStatus
+  params: Record<string, unknown>
+  error_message: string | null
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  jobs: Job[]
+}
+
+export interface PipelineRunInput {
+  pipeline_name: string
   params: Record<string, unknown>
 }
 

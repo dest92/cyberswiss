@@ -12,33 +12,27 @@ from sqlalchemy.sql import func
 from app.db.base import Base
 
 
-class JobStatus(str, enum.Enum):
+class PipelineRunStatus(str, enum.Enum):
     queued = "queued"
     running = "running"
     success = "success"
     failed = "failed"
-    timeout = "timeout"
 
 
-class Job(Base):
-    __tablename__ = "jobs"
+class PipelineRun(Base):
+    __tablename__ = "pipeline_runs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     engagement_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("engagements.id", ondelete="CASCADE"), nullable=False
     )
-    pipeline_run_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("pipeline_runs.id", ondelete="CASCADE"), nullable=True
-    )
-    step_index: Mapped[int | None] = mapped_column(nullable=True)
-    tool_name: Mapped[str] = mapped_column(String(64), nullable=False)
-    status: Mapped[JobStatus] = mapped_column(
-        SqlEnum(JobStatus, name="job_status"), default=JobStatus.queued, nullable=False
+    pipeline_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[PipelineRunStatus] = mapped_column(
+        SqlEnum(PipelineRunStatus, name="pipeline_run_status"),
+        default=PipelineRunStatus.queued,
+        nullable=False,
     )
     params: Mapped[dict] = mapped_column(JSONB, default=dict, nullable=False)
-    raw_output: Mapped[str | None] = mapped_column(Text, nullable=True)
-    parsed_results: Mapped[list | None] = mapped_column(JSONB, nullable=True)
-    container_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -46,5 +40,5 @@ class Job(Base):
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    engagement = relationship("Engagement", back_populates="jobs")
-    pipeline_run = relationship("PipelineRun", back_populates="jobs")
+    engagement = relationship("Engagement", back_populates="pipeline_runs")
+    jobs = relationship("Job", back_populates="pipeline_run", order_by="Job.step_index")

@@ -6,15 +6,18 @@ import { createScope, deleteScope, listScopes, updateScope } from '@/api/scopes'
 import { createNote, deleteNote, listNotes, updateNote } from '@/api/notes'
 import { createJob, listJobs, listTools } from '@/api/jobs'
 import { listTargets } from '@/api/targets'
+import { createPipelineRun, listPipelineDefinitions, listPipelineRuns } from '@/api/pipelines'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
-import { StatusBadge, JobStatusBadge } from '@/components/ui/Badge'
+import { StatusBadge, JobStatusBadge, PipelineRunStatusBadge } from '@/components/ui/Badge'
 import { JobLogTerminal } from '@/components/JobLogTerminal'
 import type { EngagementStatus, ScopeType } from '@/api/types'
 
 const SCOPE_TYPES: ScopeType[] = ['domain', 'ip_range', 'url', 'cidr']
 const STATUSES: EngagementStatus[] = ['active', 'archived', 'closed']
 const ACTIVE_JOB_STATUSES = new Set(['queued', 'running'])
+const ACTIVE_RUN_STATUSES = new Set(['queued', 'running'])
+const PIPELINE_PARAM_KEY: Record<string, string> = { recon_chain: 'domain', web_audit: 'url' }
 
 export function EngagementDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -135,6 +138,42 @@ export function EngagementDetailPage() {
       setActiveJobId(job.id)
       invalidateJobs()
       invalidateTargets()
+    },
+  })
+
+  const { data: pipelineDefinitions } = useQuery({
+    queryKey: ['pipelines'],
+    queryFn: listPipelineDefinitions,
+  })
+
+  const { data: pipelineRuns } = useQuery({
+    queryKey: ['engagements', engagementId, 'pipeline-runs'],
+    queryFn: () => listPipelineRuns(engagementId),
+    refetchInterval: (query) => {
+      const data = query.state.data
+      return data?.some((run) => ACTIVE_RUN_STATUSES.has(run.status)) ? 2000 : false
+    },
+  })
+
+  const invalidatePipelineRuns = () =>
+    queryClient.invalidateQueries({ queryKey: ['engagements', engagementId, 'pipeline-runs'] })
+
+  const [selectedPipeline, setSelectedPipeline] = useState('')
+  const [pipelineInput, setPipelineInput] = useState('')
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null)
+  const launchPipelineMutation = useMutation({
+    mutationFn: () => {
+      const pipelineName = selectedPipeline || pipelineDefinitions?.[0] || ''
+      const paramKey = PIPELINE_PARAM_KEY[pipelineName] ?? 'domain'
+      return createPipelineRun(engagementId, {
+        pipeline_name: pipelineName,
+        params: { [paramKey]: pipelineInput.trim() },
+      })
+    },
+    onSuccess: (run) => {
+      setPipelineInput('')
+      setExpandedRunId(run.id)
+      invalidatePipelineRuns()
     },
   })
 
@@ -392,6 +431,109 @@ export function EngagementDetailPage() {
           ))}
           {jobs && jobs.length === 0 && (
             <p className="text-sm text-muted">No se han lanzado escaneos aún.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="terminal mb-3 text-sm text-accent">pipelines</h2>
+        <form
+          className="mb-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (pipelineInput.trim()) launchPipelineMutation.mutate()
+          }}
+        >
+          <select
+            className="terminal rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+            value={selectedPipeline || pipelineDefinitions?.[0] || ''}
+            onChange={(e) => setSelectedPipeline(e.target.value)}
+          >
+            {pipelineDefinitions?.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <Input
+            placeholder={
+              PIPELINE_PARAM_KEY[selectedPipeline || pipelineDefinitions?.[0] || ''] === 'url'
+                ? 'url, ej. https://example.com'
+                : 'dominio, ej. example.com'
+            }
+            value={pipelineInput}
+            onChange={(e) => setPipelineInput(e.target.value)}
+          />
+          <Button type="submit" disabled={launchPipelineMutation.isPending || !pipelineDefinitions?.length}>
+            lanzar
+          </Button>
+        </form>
+
+        <div className="flex flex-col gap-2">
+          {pipelineRuns?.map((run) => (
+            <div key={run.id} className="rounded-md border border-border bg-surface p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="terminal text-sm text-foreground">{run.pipeline_name}</span>
+                  <PipelineRunStatusBadge status={run.status} />
+                  <span className="text-xs text-muted">
+                    {new Date(run.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => setExpandedRunId(expandedRunId === run.id ? null : run.id)}
+                >
+                  {expandedRunId === run.id ? 'ocultar pasos' : 'ver pasos'}
+                </Button>
+              </div>
+              {run.error_message && (
+                <p className="terminal mt-2 text-xs text-severity-critical">
+                  {run.error_message}
+                </p>
+              )}
+              {expandedRunId === run.id && (
+                <div className="mt-3 flex flex-col gap-2 border-l border-border pl-3">
+                  {run.jobs.map((job) => (
+                    <div key={job.id}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="terminal text-xs text-muted">
+                            paso {job.step_index}
+                          </span>
+                          <span className="terminal text-sm text-foreground">
+                            {job.tool_name}
+                          </span>
+                          <JobStatusBadge status={job.status} />
+                        </div>
+                        <Button
+                          variant="secondary"
+                          onClick={() => setActiveJobId(activeJobId === job.id ? null : job.id)}
+                        >
+                          {activeJobId === job.id ? 'ocultar logs' : 'ver logs'}
+                        </Button>
+                      </div>
+                      {job.error_message && (
+                        <p className="terminal mt-1 text-xs text-severity-critical">
+                          {job.error_message}
+                        </p>
+                      )}
+                      {activeJobId === job.id && (
+                        <div className="mt-2">
+                          <JobLogTerminal jobId={job.id} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {run.jobs.length === 0 && (
+                    <p className="text-sm text-muted">Aún no hay pasos ejecutados.</p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+          {pipelineRuns && pipelineRuns.length === 0 && (
+            <p className="text-sm text-muted">No se han lanzado pipelines aún.</p>
           )}
         </div>
       </section>

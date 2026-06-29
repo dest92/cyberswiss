@@ -37,44 +37,54 @@ async def _upsert_targets(
     await db.execute(stmt)
 
 
+async def _execute_job(db, job: Job) -> list[NormalizedResult]:
+    """Corre el contenedor de la herramienta del job y persiste sus resultados.
+
+    Reutilizado tanto por el actor de jobs sueltos como por el motor de
+    pipelines, para que ambos comuniquen el mismo ciclo de vida de Job.
+    """
+    job.status = JobStatus.running
+    job.started_at = datetime.now(timezone.utc)
+    await db.commit()
+
+    normalized: list[NormalizedResult] = []
+    try:
+        adapter = registry.get_adapter(job.tool_name)
+        command = adapter.build_command(job.params)
+        stdin_data = adapter.build_stdin(job.params)
+
+        result = await run_tool_container(
+            settings.recon_toolbox_image,
+            command,
+            stdin_data=stdin_data,
+            timeout=job.params.get("timeout_seconds"),
+            log_channel=f"job:{job.id}:logs",
+        )
+    except DockerToolTimeoutError as exc:
+        job.status = JobStatus.timeout
+        job.error_message = str(exc)
+    except Exception as exc:
+        job.status = JobStatus.failed
+        job.error_message = str(exc)
+    else:
+        normalized = adapter.parse_output(result.stdout, "")
+        job.raw_output = result.stdout
+        job.container_id = result.container_id
+        job.parsed_results = [r.model_dump(mode="json") for r in normalized]
+        job.status = JobStatus.success if result.exit_code == 0 else JobStatus.failed
+        await _upsert_targets(db, job.engagement_id, job.id, normalized)
+
+    job.finished_at = datetime.now(timezone.utc)
+    await db.commit()
+    return normalized
+
+
 async def _run_job_async(job_id: str) -> None:
     async with SessionLocal() as db:
         job = await db.get(Job, uuid.UUID(job_id))
         if job is None:
             return
-
-        job.status = JobStatus.running
-        job.started_at = datetime.now(timezone.utc)
-        await db.commit()
-
-        try:
-            adapter = registry.get_adapter(job.tool_name)
-            command = adapter.build_command(job.params)
-            stdin_data = adapter.build_stdin(job.params)
-
-            result = await run_tool_container(
-                settings.recon_toolbox_image,
-                command,
-                stdin_data=stdin_data,
-                timeout=job.params.get("timeout_seconds"),
-                log_channel=f"job:{job.id}:logs",
-            )
-        except DockerToolTimeoutError as exc:
-            job.status = JobStatus.timeout
-            job.error_message = str(exc)
-        except Exception as exc:
-            job.status = JobStatus.failed
-            job.error_message = str(exc)
-        else:
-            normalized = adapter.parse_output(result.stdout, "")
-            job.raw_output = result.stdout
-            job.container_id = result.container_id
-            job.parsed_results = [r.model_dump(mode="json") for r in normalized]
-            job.status = JobStatus.success if result.exit_code == 0 else JobStatus.failed
-            await _upsert_targets(db, job.engagement_id, job.id, normalized)
-
-        job.finished_at = datetime.now(timezone.utc)
-        await db.commit()
+        await _execute_job(db, job)
 
 
 @dramatiq.actor(max_retries=0, time_limit=settings.job_default_timeout_seconds * 1000 + 30_000)

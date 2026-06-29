@@ -1,6 +1,7 @@
 from app.models.engagement import Engagement, EngagementStatus
 from app.models.job import Job, JobStatus
 from app.models.note import Note
+from app.models.pipeline_run import PipelineRun, PipelineRunStatus
 from app.models.scope import Scope, ScopeType
 from app.models.target import Target, TargetType
 from app.models.user import User
@@ -16,4 +17,6 @@ __all__ = [
     "JobStatus",
     "Target",
     "TargetType",
+    "PipelineRun",
+    "PipelineRunStatus",
 ]
