@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/Badge'
 import { JobLogTerminal } from '@/components/JobLogTerminal'
 import { OWASP_TOP_10 } from '@/lib/owasp'
+import { buildToolParams, toolInputPlaceholder } from '@/lib/toolParams'
 import type {
   EngagementStatus,
   FindingSeverity,
@@ -163,9 +164,7 @@ export function EngagementDetailPage() {
   const launchJobMutation = useMutation({
     mutationFn: () => {
       const tool = selectedTool || tools?.[0] || ''
-      const params =
-        tool === 'subfinder' ? { domain: toolInput.trim() } : { targets: toolInput.split('\n').map((l) => l.trim()).filter(Boolean) }
-      return createJob(engagementId, { tool_name: tool, params })
+      return createJob(engagementId, { tool_name: tool, params: buildToolParams(tool, toolInput) })
     },
     onSuccess: (job) => {
       setToolInput('')
@@ -189,11 +188,11 @@ export function EngagementDetailPage() {
   const addScheduledScanMutation = useMutation({
     mutationFn: () => {
       const tool = scheduledTool || tools?.[0] || ''
-      const params =
-        tool === 'subfinder'
-          ? { domain: scheduledInput.trim() }
-          : { targets: scheduledInput.split('\n').map((l) => l.trim()).filter(Boolean) }
-      return createScheduledScan(engagementId, { tool_name: tool, params, interval_minutes: scheduledInterval })
+      return createScheduledScan(engagementId, {
+        tool_name: tool,
+        params: buildToolParams(tool, scheduledInput),
+        interval_minutes: scheduledInterval,
+      })
     },
     onSuccess: () => {
       setScheduledInput('')
@@ -584,11 +583,7 @@ export function EngagementDetailPage() {
             ))}
           </select>
           <Input
-            placeholder={
-              (selectedTool || tools?.[0]) === 'subfinder'
-                ? 'dominio, ej. example.com'
-                : 'targets (uno por línea), ej. https://example.com'
-            }
+            placeholder={toolInputPlaceholder(selectedTool || tools?.[0] || '')}
             value={toolInput}
             onChange={(e) => setToolInput(e.target.value)}
           />
@@ -654,11 +649,7 @@ export function EngagementDetailPage() {
             ))}
           </select>
           <Input
-            placeholder={
-              (scheduledTool || tools?.[0]) === 'subfinder'
-                ? 'dominio, ej. example.com'
-                : 'targets (uno por línea), ej. https://example.com'
-            }
+            placeholder={toolInputPlaceholder(scheduledTool || tools?.[0] || '')}
             value={scheduledInput}
             onChange={(e) => setScheduledInput(e.target.value)}
           />

@@ -5,7 +5,8 @@ RUN apk add --no-cache git build-base
 RUN go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest && \
     go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest && \
     go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest && \
-    go install -v github.com/OJ/gobuster/v3@latest
+    go install -v github.com/OJ/gobuster/v3@latest && \
+    go install -v github.com/ffuf/ffuf/v2@latest
 
 # Pre-bakea los templates de nuclei en la imagen para que los jobs no dependan
 # de descargarlos en cada ejecución (los contenedores corren con filesystem
@@ -24,6 +25,7 @@ COPY --from=build /root/go/bin/subfinder /usr/local/bin/subfinder
 COPY --from=build /root/go/bin/httpx /usr/local/bin/httpx
 COPY --from=build /root/go/bin/nuclei /usr/local/bin/nuclei
 COPY --from=build /root/go/bin/gobuster /usr/local/bin/gobuster
+COPY --from=build /root/go/bin/ffuf /usr/local/bin/ffuf
 COPY --from=build /root/nuclei-templates /home/scanner/nuclei-templates
 COPY wordlists/common.txt /home/scanner/wordlists/common.txt
 
