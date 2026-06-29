@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { deleteEngagement, getEngagement, updateEngagement } from '@/api/engagements'
+import {
+  deleteEngagement,
+  getEngagement,
+  getEngagementSummary,
+  updateEngagement,
+} from '@/api/engagements'
 import { createScope, deleteScope, listScopes, updateScope } from '@/api/scopes'
 import { createNote, deleteNote, listNotes, updateNote } from '@/api/notes'
 import { createJob, listJobs, listTools } from '@/api/jobs'
@@ -24,6 +29,7 @@ import type {
   EngagementStatus,
   FindingSeverity,
   FindingStatus,
+  JobStatus,
   ReportFormat,
   ScopeType,
 } from '@/api/types'
@@ -45,6 +51,11 @@ export function EngagementDetailPage() {
   const { data: engagement } = useQuery({
     queryKey: ['engagements', engagementId],
     queryFn: () => getEngagement(engagementId),
+  })
+
+  const { data: summary } = useQuery({
+    queryKey: ['engagements', engagementId, 'summary'],
+    queryFn: () => getEngagementSummary(engagementId),
   })
 
   const { data: scopes } = useQuery({
@@ -291,6 +302,82 @@ export function EngagementDetailPage() {
           ))}
         </div>
       </section>
+
+      {summary && (
+        <section>
+          <h2 className="terminal mb-3 text-sm text-accent">resumen</h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal text-xs text-muted">scopes</p>
+              <p className="terminal text-2xl text-foreground">{summary.total_scopes}</p>
+            </div>
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal text-xs text-muted">targets</p>
+              <p className="terminal text-2xl text-foreground">{summary.total_targets}</p>
+            </div>
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal text-xs text-muted">notas</p>
+              <p className="terminal text-2xl text-foreground">{summary.total_notes}</p>
+            </div>
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal text-xs text-muted">reportes</p>
+              <p className="terminal text-2xl text-foreground">{summary.total_reports}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal mb-2 text-xs text-muted">findings por severidad</p>
+              {SEVERITIES.filter((s) => summary.findings_by_severity[s]).length === 0 ? (
+                <p className="text-sm text-muted">sin findings</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {SEVERITIES.filter((s) => summary.findings_by_severity[s]).map((s) => (
+                    <div key={s} className="flex items-center justify-between">
+                      <SeverityBadge severity={s} />
+                      <span className="terminal text-sm text-foreground">
+                        {summary.findings_by_severity[s]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal mb-2 text-xs text-muted">findings por categoría owasp</p>
+              {Object.keys(summary.findings_by_owasp_category).length === 0 ? (
+                <p className="text-sm text-muted">sin findings</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {Object.entries(summary.findings_by_owasp_category).map(([category, count]) => (
+                    <div key={category} className="flex items-center justify-between">
+                      <span className="terminal text-xs text-accent">{category}</span>
+                      <span className="terminal text-sm text-foreground">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-md border border-border bg-surface p-3">
+              <p className="terminal mb-2 text-xs text-muted">jobs por estado</p>
+              {Object.keys(summary.jobs_by_status).length === 0 ? (
+                <p className="text-sm text-muted">sin escaneos</p>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {Object.entries(summary.jobs_by_status).map(([jobStatus, count]) => (
+                    <div key={jobStatus} className="flex items-center justify-between">
+                      <JobStatusBadge status={jobStatus as JobStatus} />
+                      <span className="terminal text-sm text-foreground">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="terminal mb-3 text-sm text-accent">scope</h2>

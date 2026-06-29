@@ -55,3 +55,4 @@ tool-images/     imágenes Docker con las herramientas de pentesting preinstalad
 4. ~~Fase 3 — Pipelines encadenados + más herramientas (nmap, gobuster, whatweb)~~
 5. ~~Fase 4 — Findings + Biblioteca de conocimiento (foco OWASP Top 10)~~
 6. ~~Fase 5 — Reportes (Markdown/PDF por engagement)~~
+7. ~~Fase 6 — Dashboard de métricas por engagement~~

@@ -23,6 +23,16 @@ class EngagementUpdate(BaseModel):
     end_date: date | None = None
 
 
+class EngagementSummary(BaseModel):
+    findings_by_severity: dict[str, int]
+    findings_by_owasp_category: dict[str, int]
+    jobs_by_status: dict[str, int]
+    total_scopes: int
+    total_targets: int
+    total_notes: int
+    total_reports: int
+
+
 class EngagementOut(BaseModel):
     id: uuid.UUID
     name: str

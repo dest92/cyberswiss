@@ -178,3 +178,13 @@ export interface Report {
   format: ReportFormat
   created_at: string
 }
+
+export interface EngagementSummary {
+  findings_by_severity: Record<string, number>
+  findings_by_owasp_category: Record<string, number>
+  jobs_by_status: Record<string, number>
+  total_scopes: number
+  total_targets: number
+  total_notes: number
+  total_reports: number
+}

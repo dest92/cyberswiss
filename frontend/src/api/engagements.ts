@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api'
-import type { Engagement, EngagementInput } from './types'
+import type { Engagement, EngagementInput, EngagementSummary } from './types'
 
 export async function listEngagements(): Promise<Engagement[]> {
   const { data } = await apiClient.get<Engagement[]>('/api/engagements')
@@ -26,4 +26,9 @@ export async function updateEngagement(
 
 export async function deleteEngagement(id: string): Promise<void> {
   await apiClient.delete(`/api/engagements/${id}`)
+}
+
+export async function getEngagementSummary(id: string): Promise<EngagementSummary> {
+  const { data } = await apiClient.get<EngagementSummary>(`/api/engagements/${id}/summary`)
+  return data
 }
