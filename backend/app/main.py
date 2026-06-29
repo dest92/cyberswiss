@@ -10,6 +10,7 @@ from app.api.routes import (
     notes,
     pipelines,
     reports,
+    scheduled_scans,
     scopes,
     targets,
     tools,
@@ -39,6 +40,7 @@ app.include_router(pipelines.router)
 app.include_router(findings.router)
 app.include_router(knowledge.router)
 app.include_router(reports.router)
+app.include_router(scheduled_scans.router)
 app.include_router(ws_logs.router)
 
 

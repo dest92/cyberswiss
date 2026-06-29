@@ -58,6 +58,18 @@ services:
       - job_outputs:/app/data/job_outputs
       - /var/run/docker.sock:/var/run/docker.sock
 
+  scheduler:
+    build: ./backend
+    command: ["python", "-m", "app.workers.scheduler"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://cyberswiss:change-me@postgres/cyberswiss}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   frontend:
     build: ./frontend
     depends_on:

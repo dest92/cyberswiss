@@ -55,3 +55,6 @@ class Engagement(Base):
     reports: Mapped[list["Report"]] = relationship(
         back_populates="engagement", cascade="all, delete-orphan"
     )
+    scheduled_scans: Mapped[list["ScheduledScan"]] = relationship(
+        back_populates="engagement", cascade="all, delete-orphan"
+    )

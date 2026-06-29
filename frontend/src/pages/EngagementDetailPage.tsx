@@ -14,6 +14,12 @@ import { listTargets } from '@/api/targets'
 import { createPipelineRun, listPipelineDefinitions, listPipelineRuns } from '@/api/pipelines'
 import { createFinding, deleteFinding, listFindings, updateFinding } from '@/api/findings'
 import { createReport, deleteReport, downloadReport, listReports } from '@/api/reports'
+import {
+  createScheduledScan,
+  deleteScheduledScan,
+  listScheduledScans,
+  toggleScheduledScan,
+} from '@/api/scheduledScans'
 import { Button } from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import {
@@ -167,6 +173,41 @@ export function EngagementDetailPage() {
       invalidateJobs()
       invalidateTargets()
     },
+  })
+
+  const { data: scheduledScans } = useQuery({
+    queryKey: ['engagements', engagementId, 'scheduled-scans'],
+    queryFn: () => listScheduledScans(engagementId),
+  })
+
+  const invalidateScheduledScans = () =>
+    queryClient.invalidateQueries({ queryKey: ['engagements', engagementId, 'scheduled-scans'] })
+
+  const [scheduledTool, setScheduledTool] = useState('')
+  const [scheduledInput, setScheduledInput] = useState('')
+  const [scheduledInterval, setScheduledInterval] = useState(60)
+  const addScheduledScanMutation = useMutation({
+    mutationFn: () => {
+      const tool = scheduledTool || tools?.[0] || ''
+      const params =
+        tool === 'subfinder'
+          ? { domain: scheduledInput.trim() }
+          : { targets: scheduledInput.split('\n').map((l) => l.trim()).filter(Boolean) }
+      return createScheduledScan(engagementId, { tool_name: tool, params, interval_minutes: scheduledInterval })
+    },
+    onSuccess: () => {
+      setScheduledInput('')
+      invalidateScheduledScans()
+    },
+  })
+  const toggleScheduledScanMutation = useMutation({
+    mutationFn: (vars: { scheduledScanId: string; enabled: boolean }) =>
+      toggleScheduledScan(engagementId, vars.scheduledScanId, vars.enabled),
+    onSuccess: invalidateScheduledScans,
+  })
+  const deleteScheduledScanMutation = useMutation({
+    mutationFn: (scheduledScanId: string) => deleteScheduledScan(engagementId, scheduledScanId),
+    onSuccess: invalidateScheduledScans,
   })
 
   const { data: pipelineDefinitions } = useQuery({
@@ -588,6 +629,101 @@ export function EngagementDetailPage() {
           ))}
           {jobs && jobs.length === 0 && (
             <p className="text-sm text-muted">No se han lanzado escaneos aún.</p>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="terminal mb-3 text-sm text-accent">escaneos recurrentes</h2>
+        <form
+          className="mb-4 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (scheduledInput.trim()) addScheduledScanMutation.mutate()
+          }}
+        >
+          <select
+            className="terminal rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+            value={scheduledTool || tools?.[0] || ''}
+            onChange={(e) => setScheduledTool(e.target.value)}
+          >
+            {tools?.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <Input
+            placeholder={
+              (scheduledTool || tools?.[0]) === 'subfinder'
+                ? 'dominio, ej. example.com'
+                : 'targets (uno por línea), ej. https://example.com'
+            }
+            value={scheduledInput}
+            onChange={(e) => setScheduledInput(e.target.value)}
+          />
+          <select
+            className="terminal rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
+            value={scheduledInterval}
+            onChange={(e) => setScheduledInterval(Number(e.target.value))}
+          >
+            <option value={60}>cada hora</option>
+            <option value={360}>cada 6 horas</option>
+            <option value={1440}>cada día</option>
+            <option value={10080}>cada semana</option>
+          </select>
+          <Button type="submit" disabled={addScheduledScanMutation.isPending || !tools?.length}>
+            programar
+          </Button>
+        </form>
+
+        <div className="flex flex-col gap-2">
+          {scheduledScans?.map((scheduledScan) => (
+            <div
+              key={scheduledScan.id}
+              className="flex items-center justify-between rounded-md border border-border bg-surface px-3 py-2"
+            >
+              <div className="flex items-center gap-3">
+                <span className="terminal text-sm text-foreground">{scheduledScan.tool_name}</span>
+                <span className="terminal text-xs text-muted">
+                  cada {scheduledScan.interval_minutes} min
+                </span>
+                <span
+                  className={
+                    scheduledScan.enabled
+                      ? 'terminal text-xs text-terminal-green'
+                      : 'terminal text-xs text-muted'
+                  }
+                >
+                  {scheduledScan.enabled ? 'activo' : 'pausado'}
+                </span>
+                <span className="text-xs text-muted">
+                  próxima ejecución: {new Date(scheduledScan.next_run_at).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    toggleScheduledScanMutation.mutate({
+                      scheduledScanId: scheduledScan.id,
+                      enabled: !scheduledScan.enabled,
+                    })
+                  }
+                >
+                  {scheduledScan.enabled ? 'pausar' : 'reanudar'}
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => deleteScheduledScanMutation.mutate(scheduledScan.id)}
+                >
+                  eliminar
+                </Button>
+              </div>
+            </div>
+          ))}
+          {scheduledScans && scheduledScans.length === 0 && (
+            <p className="text-sm text-muted">Sin escaneos recurrentes programados.</p>
           )}
         </div>
       </section>

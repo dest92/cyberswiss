@@ -188,3 +188,21 @@ export interface EngagementSummary {
   total_notes: number
   total_reports: number
 }
+
+export interface ScheduledScan {
+  id: string
+  engagement_id: string
+  tool_name: string
+  params: Record<string, unknown>
+  interval_minutes: number
+  enabled: boolean
+  next_run_at: string
+  last_run_at: string | null
+  created_at: string
+}
+
+export interface ScheduledScanInput {
+  tool_name: string
+  params: Record<string, unknown>
+  interval_minutes: number
+}
